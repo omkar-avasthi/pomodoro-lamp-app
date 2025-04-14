@@ -1,0 +1,13 @@
+body {
+    background: #f8f9fa;
+    transition: background-color 0.3s, color 0.3s;
+}
+body.dark-mode {
+    background: #121212;
+    color: #fff;
+}
+.timer {
+    font-weight: bold;
+    font-size: 5rem;
+}
+

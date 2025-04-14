@@ -1,0 +1,8 @@
+CREATE DATABASE IF NOT EXISTS pomodoro_db;
+USE pomodoro_db;
+CREATE TABLE IF NOT EXISTS sessions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    session_name VARCHAR(255),
+    session_time DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
