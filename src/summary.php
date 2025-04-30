@@ -12,6 +12,7 @@ $result = $mysqli->query("SELECT session_name, session_time FROM sessions ORDER 
 </head>
 <body class="container mt-5">
     <h1>Pomodoro Sessions</h1>
+    <a href="export_pomodoro.php" class="btn btn-outline-primary mb-3">Export Pomodoro CSV</a>
     <table class="table">
         <tr><th>Session Name</th><th>Time</th></tr>
         <?php while ($row = $result->fetch_assoc()): ?>

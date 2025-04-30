@@ -1,98 +1,62 @@
-// Load durations and preferences from localStorage (or use defaults)
-let workDuration = (localStorage.getItem('workDuration') || 25) * 60;
-let shortBreak = (localStorage.getItem('shortBreak') || 5) * 60;
-let longBreak = (localStorage.getItem('longBreak') || 15) * 60;
-let autoStart = JSON.parse(localStorage.getItem('autoStart') || false);
-let soundOn = JSON.parse(localStorage.getItem('soundOn') || true);
+let timerInterval = null;
+let startTime = null;
+let sessionDuration = 25 * 60; // default 25 minutes
+let isBreak = false;
+let breakDuration = 5 * 60; // default 5 minutes
+let timerStatus = 'Ready';
 
-// Timer state variables
-let time = workDuration;
-let interval = null;
-let isWork = true;
-let cycles = 0;
-
-// Update the timer display
-function updateDisplay() {
-    const m = Math.floor(time / 60).toString().padStart(2, '0');
-    const s = (time % 60).toString().padStart(2, '0');
-    document.getElementById("timer").innerText = `${m}:${s}`;
+function updateTimerDisplay(secondsRemaining) {
+    const minutes = Math.floor(secondsRemaining / 60);
+    const seconds = secondsRemaining % 60;
+    document.getElementById("timer").innerText =
+        String(minutes).padStart(2, '0') + ":" + String(seconds).padStart(2, '0');
 }
 
-// Update the session status text
-function updateStatus(text) {
-    document.getElementById("status").innerText = text;
-}
-
-// Start the timer
 function startTimer() {
-    if (interval) return; // Prevent multiple intervals
-    updateStatus(isWork ? "Work Session" : "Break Time");
-    interval = setInterval(() => {
-        time--;
-        updateDisplay();
-        if (time <= 0) {
-            clearInterval(interval);
-            interval = null;
+    if (timerInterval) return; // already running
 
-            // Play notification
-            playNotification();
+    const now = Date.now();
+    const totalDuration = isBreak ? breakDuration : sessionDuration;
+    startTime = now;
+    const targetEndTime = startTime + totalDuration * 1000;
 
-            if (isWork) {
-                cycles++;
-                logSession();
+    timerInterval = setInterval(() => {
+        const currentTime = Date.now();
+        const secondsPassed = Math.floor((currentTime - startTime) / 1000);
+        const secondsRemaining = totalDuration - secondsPassed;
 
-                // Decide break type
-                if (cycles % 4 === 0) {
-                    time = longBreak;
-                    updateStatus("Long Break!");
-                } else {
-                    time = shortBreak;
-                    updateStatus("Short Break!");
-                }
+        if (secondsRemaining >= 0) {
+            updateTimerDisplay(secondsRemaining);
+        } else {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            if (!isBreak) {
+                isBreak = true;
+                timerStatus = 'Break Time!';
+                alert("Work session completed! Time for a short break.");
+                startTimer(); // Auto-start break
             } else {
-                // After break, go back to work session
-                time = workDuration;
-                updateStatus("Work Session");
-            }
-
-            isWork = !isWork;
-
-            // Auto-start next session if enabled
-            if (autoStart) {
-                startTimer();
+                isBreak = false;
+                timerStatus = 'Ready';
+                alert("Break over! Ready for next Pomodoro.");
+                updateTimerDisplay(sessionDuration);
             }
         }
     }, 1000);
+
+    timerStatus = isBreak ? "Break Running" : "Work Running";
+    document.getElementById("status").innerText = timerStatus;
 }
 
-// Reset the timer
 function resetTimer() {
-    clearInterval(interval);
-    interval = null;
-    isWork = true;
-    cycles = 0;
-    time = workDuration;
-    updateStatus("Ready");
-    updateDisplay();
+    clearInterval(timerInterval);
+    timerInterval = null;
+    startTime = null;
+    isBreak = false;
+    timerStatus = 'Ready';
+    updateTimerDisplay(sessionDuration);
+    document.getElementById("status").innerText = timerStatus;
 }
 
-// Play sound notification
-function playNotification() {
-    if (soundOn) {
-        let audio = new Audio("assets/audio/notification.mp3"); // Make sure this file exists
-        audio.play();
-    }
-}
+updateTimerDisplay(sessionDuration);
 
-// Log a completed work session to the server
-function logSession() {
-    const sessionName = document.getElementById("sessionName").value || "Unnamed";
-    fetch('log_session.php', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: 'name=' + encodeURIComponent(sessionName)
-    });
-}
-
-// Initialize the display when page loads
-updateDisplay();
